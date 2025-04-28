@@ -18,11 +18,25 @@ interface DayActions {
   actions: Action[];
 }
 
+// Predefined list of actions to choose from
+const PREDEFINED_ACTIONS = [
+  "Exercise",
+  "Healthy meal",
+  "Work task completed",
+  "Meditation/Mindfulness",
+  "Learning/Reading",
+  "Social interaction",
+  "Sleep schedule",
+  "Household chores",
+  "Creative activity",
+  "Self-care",
+];
+
 function App() {
   // State to store all days with actions
   const [allDays, setAllDays] = useState<DayActions[]>([]);
-  // State for action description input
-  const [actionDescription, setActionDescription] = useState<string>('');
+  // State for selected action
+  const [selectedAction, setSelectedAction] = useState<string>(PREDEFINED_ACTIONS[0]);
   
   // Format date as YYYY-MM-DD
   const formatDate = (date: Date): string => {
@@ -55,16 +69,11 @@ function App() {
 
   // Function to handle action submission
   const submitAction = (value: Rating) => {
-    if (!actionDescription.trim()) {
-      alert('Please provide a description of your action');
-      return;
-    }
-
-    // Create a new action
+    // Create a new action with the selected predefined action
     const newAction: Action = {
       id: generateId(),
       timestamp: new Date().toISOString(),
-      description: actionDescription,
+      description: selectedAction,
       rating: value
     };
     
@@ -86,9 +95,6 @@ function App() {
         actions: [newAction]
       }]);
     }
-    
-    // Clear description input
-    setActionDescription('');
   };
 
   // Function to delete an action
@@ -187,21 +193,25 @@ function App() {
           <h2>Rate Your Actions: {today}</h2>
           
           <div className="action-input">
-            <label htmlFor="action-description">What action did you take?</label>
-            <input
-              id="action-description"
-              type="text"
-              value={actionDescription}
-              onChange={(e) => setActionDescription(e.target.value)}
-              placeholder="Describe your action..."
-            />
+            <label htmlFor="action-selection">Choose an action to rate:</label>
+            <select
+              id="action-selection"
+              value={selectedAction}
+              onChange={(e) => setSelectedAction(e.target.value)}
+              className="action-select"
+            >
+              {PREDEFINED_ACTIONS.map((action, index) => (
+                <option key={index} value={action}>
+                  {action}
+                </option>
+              ))}
+            </select>
           </div>
           
           <div className="rating-buttons">
             <button 
               className="rating-button rating-negative"
               onClick={() => submitAction(-1)}
-              disabled={!actionDescription.trim()}
             >
               😞 Negative (-1)
             </button>
@@ -209,7 +219,6 @@ function App() {
             <button 
               className="rating-button rating-neutral"
               onClick={() => submitAction(0)}
-              disabled={!actionDescription.trim()}
             >
               😐 Neutral (0)
             </button>
@@ -217,7 +226,6 @@ function App() {
             <button 
               className="rating-button rating-positive"
               onClick={() => submitAction(1)}
-              disabled={!actionDescription.trim()}
             >
               😊 Positive (1)
             </button>
