@@ -8,7 +8,6 @@ type Rating = -1 | 0 | 1;
 interface Action {
   id: string;
   timestamp: string; // ISO timestamp
-  description: string;
   rating: Rating;
 }
 
@@ -18,25 +17,13 @@ interface DayActions {
   actions: Action[];
 }
 
-// Predefined list of actions to choose from
-const PREDEFINED_ACTIONS = [
-  "Exercise",
-  "Healthy meal",
-  "Work task completed",
-  "Meditation/Mindfulness",
-  "Learning/Reading",
-  "Social interaction",
-  "Sleep schedule",
-  "Household chores",
-  "Creative activity",
-  "Self-care",
-];
-
 function App() {
   // State to store all days with actions
   const [allDays, setAllDays] = useState<DayActions[]>([]);
-  // State for selected action
-  const [selectedAction, setSelectedAction] = useState<string>(PREDEFINED_ACTIONS[0]);
+  // State for showing undo popup
+  const [showUndoPopup, setShowUndoPopup] = useState<boolean>(false);
+  // State to store the latest action id for undo functionality
+  const [latestActionId, setLatestActionId] = useState<string | null>(null);
   
   // Format date as YYYY-MM-DD
   const formatDate = (date: Date): string => {
@@ -69,11 +56,12 @@ function App() {
 
   // Function to handle action submission
   const submitAction = (value: Rating) => {
-    // Create a new action with the selected predefined action
+    const newActionId = generateId();
+    
+    // Create a new action with just the rating
     const newAction: Action = {
-      id: generateId(),
+      id: newActionId,
       timestamp: new Date().toISOString(),
-      description: selectedAction,
       rating: value
     };
     
@@ -95,6 +83,26 @@ function App() {
         actions: [newAction]
       }]);
     }
+    
+    // Set latest action id for undo functionality
+    setLatestActionId(newActionId);
+    
+    // Show undo popup
+    setShowUndoPopup(true);
+    
+    // Hide popup after 5 seconds
+    setTimeout(() => {
+      setShowUndoPopup(false);
+    }, 5000);
+  };
+
+  // Function to undo the latest action
+  const undoLatestAction = () => {
+    if (!latestActionId) return;
+    
+    deleteAction(latestActionId);
+    setShowUndoPopup(false);
+    setLatestActionId(null);
   };
 
   // Function to delete an action
@@ -190,23 +198,7 @@ function App() {
       
       <main className="App-content">
         <section className="rating-section">
-          <h2>Rate Your Actions: {today}</h2>
-          
-          <div className="action-input">
-            <label htmlFor="action-selection">Choose an action to rate:</label>
-            <select
-              id="action-selection"
-              value={selectedAction}
-              onChange={(e) => setSelectedAction(e.target.value)}
-              className="action-select"
-            >
-              {PREDEFINED_ACTIONS.map((action, index) => (
-                <option key={index} value={action}>
-                  {action}
-                </option>
-              ))}
-            </select>
-          </div>
+          <h2>Rate Your Day: {today}</h2>
           
           <div className="rating-buttons">
             <button 
@@ -231,9 +223,17 @@ function App() {
             </button>
           </div>
           
+          {/* Undo Popup */}
+          {showUndoPopup && (
+            <div className="undo-popup">
+              <p>Rating saved! </p>
+              <button onClick={undoLatestAction}>Undo</button>
+            </div>
+          )}
+          
           {todayActions.length > 0 && (
             <div className="today-actions">
-              <h3>Today's Actions</h3>
+              <h3>Today's Ratings</h3>
               <ul className="actions-list">
                 {todayActions.map((action) => (
                   <li key={action.id} className={`action-item rating-${action.rating}`}>
@@ -244,12 +244,11 @@ function App() {
                           {getRatingEmoji(action.rating)} {getRatingLabel(action.rating)}
                         </span>
                       </div>
-                      <p className="action-description">{action.description}</p>
                     </div>
                     <button 
                       className="delete-action" 
                       onClick={() => deleteAction(action.id)}
-                      title="Delete this action"
+                      title="Delete this rating"
                     >
                       ✕
                     </button>
@@ -278,7 +277,7 @@ function App() {
         <section className="history-section">
           <h2>Previous Days</h2>
           {previousDays.length === 0 ? (
-            <p>No previous actions yet.</p>
+            <p>No previous ratings yet.</p>
           ) : (
             <ul className="days-list">
               {previousDays.map((day) => {
@@ -303,7 +302,7 @@ function App() {
                     </div>
                     
                     <details className="day-details">
-                      <summary>View all actions</summary>
+                      <summary>View all ratings</summary>
                       <ul className="actions-list">
                         {day.actions.sort((a, b) => 
                           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -316,7 +315,6 @@ function App() {
                                   {getRatingEmoji(action.rating)} {getRatingLabel(action.rating)}
                                 </span>
                               </div>
-                              <p className="action-description">{action.description}</p>
                             </div>
                           </li>
                         ))}
