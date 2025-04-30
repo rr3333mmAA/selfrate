@@ -131,95 +131,56 @@ function App() {
     }
   };
 
-  // Function to get a descriptive label for a rating
-  const getRatingLabel = (rating: Rating): string => {
-    switch(rating) {
-      case -1: return 'Negative';
-      case 0: return 'Neutral';
-      case 1: return 'Positive';
-      default: return '';
-    }
-  };
-
-  // Function to get emoji for a rating
-  const getRatingEmoji = (rating: Rating): string => {
-    switch(rating) {
-      case -1: return '😞';
-      case 0: return '😐';
-      case 1: return '😊';
-      default: return '';
-    }
-  };
-
-  // Calculate daily summary for previous days
-  const getDailySummary = (actions: Action[]): {
-    positive: number;
-    neutral: number;
-    negative: number;
-    overall: string;
-  } => {
-    const summary = {
-      positive: 0,
-      neutral: 0,
-      negative: 0,
-      overall: ''
-    };
-    
-    actions.forEach(action => {
-      if (action.rating === 1) summary.positive++;
-      else if (action.rating === 0) summary.neutral++;
-      else summary.negative++;
-    });
-    
-    const total = summary.positive - summary.negative;
-    if (total > 0) summary.overall = 'Positive';
-    else if (total < 0) summary.overall = 'Negative';
-    else summary.overall = 'Neutral';
-    
-    return summary;
-  };
-
   // Format time to be more readable
   const formatTime = (isoString: string): string => {
     const date = new Date(isoString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Get previous days, sorted by date (most recent first)
-  const previousDays = [...allDays]
-    .filter(day => day.date !== today)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Calculate summary as a string of all ratings
+  const getRatingSummaryString = (actions: Action[]): string => {
+    if (actions.length === 0) return '';
+    
+    // Map each action to its rating symbol
+    const ratingsString = actions.map(action => {
+      switch(action.rating) {
+        case -1: return '-1';
+        case 0: return '0';
+        case 1: return '1';
+        default: return '';
+      }
+    }).join(', ');
+    
+    // Calculate sum
+    const sum = actions.reduce((total, action) => total + action.rating, 0);
+    
+    return `${ratingsString} = ${sum}`;
+  };
 
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>Self Rating App</h1>
-      </header>
-      
       <main className="App-content">
         <section className="rating-section">
-          <h2>Rate Your Day: {today}</h2>
-          
           <div className="rating-buttons">
             <button 
               className="rating-button rating-negative"
               onClick={() => submitAction(-1)}
             >
-              😞 Negative (-1)
+              -1
             </button>
             
             <button 
               className="rating-button rating-neutral"
               onClick={() => submitAction(0)}
             >
-              😐 Neutral (0)
+              0
             </button>
             
             <button 
               className="rating-button rating-positive"
               onClick={() => submitAction(1)}
             >
-              😊 Positive (1)
+              1
             </button>
           </div>
           
@@ -233,7 +194,7 @@ function App() {
           
           {todayActions.length > 0 && (
             <div className="today-actions">
-              <h3>Today's Ratings</h3>
+              <h3>Today</h3>
               <ul className="actions-list">
                 {todayActions.map((action) => (
                   <li key={action.id} className={`action-item rating-${action.rating}`}>
@@ -241,7 +202,7 @@ function App() {
                       <div className="action-header">
                         <span className="action-time">{formatTime(action.timestamp)}</span>
                         <span className="action-rating">
-                          {getRatingEmoji(action.rating)} {getRatingLabel(action.rating)}
+                          {action.rating}
                         </span>
                       </div>
                     </div>
@@ -257,73 +218,12 @@ function App() {
               </ul>
               
               <div className="today-summary">
-                <h4>Today's Summary</h4>
-                <div className="summary-counts">
-                  <span className="positive-count">
-                    😊 {todayActions.filter(a => a.rating === 1).length} Positive
-                  </span>
-                  <span className="neutral-count">
-                    😐 {todayActions.filter(a => a.rating === 0).length} Neutral
-                  </span>
-                  <span className="negative-count">
-                    😞 {todayActions.filter(a => a.rating === -1).length} Negative
-                  </span>
+                <h4>Summary</h4>
+                <div className="summary-text">
+                  {getRatingSummaryString(todayActions)}
                 </div>
               </div>
             </div>
-          )}
-        </section>
-        
-        <section className="history-section">
-          <h2>Previous Days</h2>
-          {previousDays.length === 0 ? (
-            <p>No previous ratings yet.</p>
-          ) : (
-            <ul className="days-list">
-              {previousDays.map((day) => {
-                const summary = getDailySummary(day.actions);
-                return (
-                  <li key={day.date} className={`day-item summary-${summary.overall.toLowerCase()}`}>
-                    <div className="day-header">
-                      <span className="day-date">{day.date}</span>
-                      <span className="day-summary">{summary.overall} Day</span>
-                    </div>
-                    
-                    <div className="day-counts">
-                      <span className="positive-count">
-                        😊 {summary.positive} Positive
-                      </span>
-                      <span className="neutral-count">
-                        😐 {summary.neutral} Neutral
-                      </span>
-                      <span className="negative-count">
-                        😞 {summary.negative} Negative
-                      </span>
-                    </div>
-                    
-                    <details className="day-details">
-                      <summary>View all ratings</summary>
-                      <ul className="actions-list">
-                        {day.actions.sort((a, b) => 
-                          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-                        ).map((action) => (
-                          <li key={action.id} className={`action-item rating-${action.rating}`}>
-                            <div className="action-content">
-                              <div className="action-header">
-                                <span className="action-time">{formatTime(action.timestamp)}</span>
-                                <span className="action-rating">
-                                  {getRatingEmoji(action.rating)} {getRatingLabel(action.rating)}
-                                </span>
-                              </div>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  </li>
-                );
-              })}
-            </ul>
           )}
         </section>
       </main>
